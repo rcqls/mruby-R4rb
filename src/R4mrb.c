@@ -1,6 +1,6 @@
 /**********************************************************************
 
-  R4rb.c
+  R4mrb.c
 
 **********************************************************************/
 #include <stdio.h>
@@ -50,7 +50,7 @@ extern Rboolean R_Interactive;
 extern int Rf_initEmbeddedR(int argc, char *argv[]);
 static int R_initialized=0;
 
-mrb_value R2rb_init(mrb_state *mrb, mrb_value obj) //, mrb_value args)
+mrb_value R4mrb_init(mrb_state *mrb, mrb_value obj) //, mrb_value args)
 {
   char* argv[4];
     argv[0]="REmbed";
@@ -65,9 +65,15 @@ mrb_value R2rb_init(mrb_state *mrb, mrb_value obj) //, mrb_value args)
   return mrb_true_value();
 }
 
+mrb_value R4mrb_initialized(mrb_state *mrb, mrb_value obj) //, mrb_value args)
+{
+  ;
+  return (R_initialized==1 ? mrb_true_value() : mrb_false_value());
+}
+
 /***************** EVAL **********************/
 
-mrb_value R2rb_eval(mrb_state *mrb,mrb_value obj) //, mrb_value cmd, mrb_value print)
+mrb_value R4mrb_eval(mrb_state *mrb,mrb_value obj) //, mrb_value cmd, mrb_value print)
 {
   char *cmdString;
   mrb_int len;
@@ -115,7 +121,7 @@ mrb_value R2rb_eval(mrb_state *mrb,mrb_value obj) //, mrb_value cmd, mrb_value p
 
 /***************** PARSE **********************/
 
-mrb_value R2rb_parse(mrb_state *mrb, mrb_value obj) //, mrb_value cmd,mrb_value print)
+mrb_value R4mrb_parse(mrb_state *mrb, mrb_value obj) //, mrb_value cmd,mrb_value print)
 {
   char *cmdString;
   int status,print;
@@ -196,7 +202,7 @@ int util_isVector(SEXP ans)
 int util_isVariable(mrb_state *mrb, mrb_value self)
 {
   mrb_value tmp;
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"type"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"@type"));
   return strcmp(mrb_string_value_ptr(mrb,tmp),"var")==0;
 }
 
@@ -206,13 +212,13 @@ SEXP util_getVar(mrb_state *mrb, mrb_value self)
   char *name;
   mrb_value tmp;
 
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"name"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"@name"));
   name=(char*)mrb_string_value_ptr(mrb,tmp);
   if(util_isVariable(mrb,self)) {
     ans = findVar(install(name),R_GlobalEnv); //currently in  R_GlobalEnv!!!
   } else {
     //printf("getVar:%s\n",name);
-    ans=util_eval1string(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"name")));
+    ans=util_eval1string(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"@name")));
     if(ans==R_NilValue) return ans;
   }
   if(!util_isVector(ans)) return R_NilValue;
@@ -226,8 +232,8 @@ SEXP util_getExpr_with_arg(mrb_state *mrb, mrb_value self)
   mrb_value tmp;
 
   //printf("getVar:%s\n",name);
-  tmp=mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"arg")));
-  ans=util_eval1string(mrb,mrb_str_cat_cstr(mrb,mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"name"))),mrb_string_value_ptr(mrb,tmp)));
+  tmp=mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"@arg")));
+  ans=util_eval1string(mrb,mrb_str_cat_cstr(mrb,mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb,"@name"))),mrb_string_value_ptr(mrb,tmp)));
   if(ans==R_NilValue) return ans;
   if(!util_isVector(ans)) return R_NilValue;
   return ans;
@@ -331,9 +337,9 @@ mrb_value RVect_initialize(mrb_state *mrb, mrb_value self) //, mrb_value name)
   mrb_value name;
 
   mrb_get_args(mrb,"S",&name);
-  mrb_iv_set(mrb,self,mrb_intern_lit(mrb, "name"),name);
-  mrb_iv_set(mrb,self,mrb_intern_lit(mrb, "type"),mrb_str_new_lit(mrb,"var"));
-  mrb_iv_set(mrb,self,mrb_intern_lit(mrb, "arg"),mrb_str_new_lit(mrb,""));
+  mrb_iv_set(mrb,self,mrb_intern_lit(mrb, "@name"),name);
+  mrb_iv_set(mrb,self,mrb_intern_lit(mrb, "@type"),mrb_str_new_lit(mrb,"var"));
+  mrb_iv_set(mrb,self,mrb_intern_lit(mrb, "@arg"),mrb_str_new_lit(mrb,""));
   return self;
 }
 
@@ -344,7 +350,7 @@ mrb_value RVect_isValid(mrb_state *mrb, mrb_value self)
 
 #ifdef cqls
   mrb_value tmp;
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"));
   name = (char*)mrb_string_value_ptr(mrb,tmp);
   ans = findVar(install(name),R_GlobalEnv); //currently in  R_GlobalEnv!!!
 #else
@@ -353,7 +359,7 @@ mrb_value RVect_isValid(mrb_state *mrb, mrb_value self)
   if(!util_isVector(ans)) {
 #ifndef cqls
     mrb_value tmp;
-    tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"));
+    tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"));
     name = (char*)mrb_string_value_ptr(mrb,tmp);
 #endif
     mrb_warn(mrb,"%s is not a R vector !!!",name); //TODO name not defined
@@ -369,7 +375,7 @@ mrb_value RVect_length(mrb_state *mrb, mrb_value self)
 #ifdef cqls
   char *name;
   mrb_value tmp;
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"));
   if(!RVect_isValid(mrb,self)) return mrb_nil_value();
   name = mrb_string_value_ptr(mrb,tmp);
   ans = findVar(install(name),R_GlobalEnv); //currently in  R_GlobalEnv!!!
@@ -406,7 +412,7 @@ mrb_value RVect_get(mrb_state *mrb, mrb_value self)
   }
 #endif
 #ifdef cqls 
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"));
   name = mrb_string_value_ptr(mrb,tmp);
   ans = findVar(install(name),R_GlobalEnv); 
 #endif
@@ -457,7 +463,7 @@ mrb_value RVect_aref(mrb_state *mrb, mrb_value self) //, mrb_value index)
   
 #ifdef cqls
   if(!RVect_isValid(mrb,self)) return mrb_nil_value();
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"));
   name = mrb_string_value_ptr(mrb,tmp);
   ans = findVar(install(name),R_GlobalEnv); //currently in  R_GlobalEnv!!!
 #else
@@ -505,13 +511,13 @@ mrb_value RVect_set(mrb_state *mrb, mrb_value self) //,mrb_value arr)
 
   ans=util_mrb_value2SEXP(mrb,arr);
   
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"));
   name = (char*)mrb_string_value_ptr(mrb,tmp);
   if(util_isVariable(mrb,self)) {
     defineVar(install(name),ans,R_GlobalEnv); //currently in R_GlobalEnv!!!
   } else {
     defineVar(install(".rubyExport"),ans,R_GlobalEnv);
-    util_eval1string(mrb,mrb_str_cat_cstr(mrb,mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"))),"<-.rubyExport"));
+    util_eval1string(mrb,mrb_str_cat_cstr(mrb,mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"))),"<-.rubyExport"));
   }
 
   return self; 
@@ -540,8 +546,8 @@ mrb_value RVect_set_with_arg(mrb_state *mrb, mrb_value self) //,mrb_value arr)
 
   mrb_get_args(mrb,"A",&arr);
   defineVar(install(".rubyExport"),util_mrb_value2SEXP(mrb,arr),R_GlobalEnv);
-  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "arg")); 
-  util_eval1string(mrb,mrb_str_cat_cstr(mrb,mrb_str_cat_cstr(mrb,mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "name"))),mrb_string_value_ptr(mrb,tmp)),"<-.rubyExport"));
+  tmp=mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@arg")); 
+  util_eval1string(mrb,mrb_str_cat_cstr(mrb,mrb_str_cat_cstr(mrb,mrb_str_dup(mrb,mrb_iv_get(mrb,self,mrb_intern_lit(mrb, "@name"))),mrb_string_value_ptr(mrb,tmp)),"<-.rubyExport"));
   return self;
 }
 
@@ -551,18 +557,20 @@ void
 mrb_mruby_R4rb_gem_init(mrb_state* mrb)
 {
 
-  struct RClass *mR2rb;
-  mR2rb = mrb_define_module(mrb,"R2rb");
+  struct RClass *mR4mrb;
+  mR4mrb = mrb_define_module(mrb,"R4mrb");
 
-  mrb_define_module_function(mrb, mR2rb, "initR", R2rb_init, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, mR4mrb, "initR", R4mrb_init, MRB_ARGS_NONE());
 
-  mrb_define_module_function(mrb, mR2rb, "evalLine", R2rb_eval, MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, mR4mrb, "alive?", R4mrb_initialized, MRB_ARGS_NONE());
 
-  mrb_define_module_function(mrb, mR2rb, "parseLine", R2rb_parse, MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, mR4mrb, "evalLine", R4mrb_eval, MRB_ARGS_REQ(2));
+
+  mrb_define_module_function(mrb, mR4mrb, "parseLine", R4mrb_parse, MRB_ARGS_REQ(2));
 
   struct RClass *cRVect;
 
-  cRVect = mrb_define_class_under(mrb, mR2rb,"RVector",mrb->object_class);
+  cRVect = mrb_define_class_under(mrb, mR4mrb,"RVector",mrb->object_class);
 
   mrb_define_module_function(mrb, cRVect, "assign", RVect_assign, MRB_ARGS_REQ(2));
 
