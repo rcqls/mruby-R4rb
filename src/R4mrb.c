@@ -45,6 +45,7 @@ SEXP R_ParseVector(SEXP, int, int *,SEXP);
 #endif
 
 /************* INIT *********************/
+extern int R_running_as_main_program;
 
 extern Rboolean R_Interactive;
 extern int Rf_initEmbeddedR(int argc, char *argv[]);
