@@ -52,6 +52,8 @@ static int R_initialized=0;
 
 mrb_value R4mrb_init(mrb_state *mrb, mrb_value obj) //, mrb_value args)
 {
+  R_initialized=1;
+  if(!R_running_as_main_program) {
   char* argv[4];
     argv[0]="REmbed";
     argv[1]="--save";
@@ -61,8 +63,8 @@ mrb_value R4mrb_init(mrb_state *mrb, mrb_value obj) //, mrb_value args)
   //printf("argc=%d\n",argc);
   Rf_initEmbeddedR(4,argv);
   R_Interactive = FALSE;
-  R_initialized=1;
   return mrb_true_value();
+ } else {return mrb_false_value();}
 }
 
 mrb_value R4mrb_initialized(mrb_state *mrb, mrb_value obj) //, mrb_value args)
